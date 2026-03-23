@@ -5,6 +5,7 @@ import { createPlayer } from '../services/playerService'
 import { usePlayers } from '../hooks/useFirestore'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
+import { seedDatabase } from '../scripts/seedFirestore'
 
 const BADGES = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'PRO', 'ELITE']
 
@@ -19,6 +20,8 @@ export default function CreatePlayer() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState(null)
+  const [seeding, setSeeding] = useState(false)
+  const [seedDone, setSeedDone] = useState(false)
 
   // Auto-assign badge based on rating
   const autoBadge = (r) => {
@@ -58,6 +61,19 @@ export default function CreatePlayer() {
       setError('Errore nella creazione. Riprova.')
     }
     setSaving(false)
+  }
+
+  async function handleSeed() {
+    if (!window.confirm('Questo cancellerà tutti i giocatori esistenti e caricherà i dati iniziali. Continuare?')) return
+    setSeeding(true)
+    try {
+      await seedDatabase()
+      setSeedDone(true)
+      setTimeout(() => setSeedDone(false), 4000)
+    } catch (e) {
+      setError('Errore nel seed: ' + e.message)
+    }
+    setSeeding(false)
   }
 
   async function markAsCurrentUser(playerId) {
@@ -186,6 +202,21 @@ export default function CreatePlayer() {
             </div>
           </section>
         )}
+
+        {/* Seed button — use once to load initial data */}
+        <section className="mt-10 border-t border-white/10 pt-8">
+          <p className="text-xs text-on-surface-variant mb-3 text-center uppercase tracking-widest">Dev Tools</p>
+          {seedDone && (
+            <p className="text-primary text-sm text-center mb-3">6 giocatori caricati su Firestore!</p>
+          )}
+          <button
+            onClick={handleSeed}
+            disabled={seeding}
+            className="w-full py-3 rounded-lg border border-outline-variant/40 text-on-surface-variant text-sm font-bold hover:bg-surface-bright/20 transition-all disabled:opacity-50"
+          >
+            {seeding ? 'Caricamento dati...' : '🌱 Seed Database (solo prima volta)'}
+          </button>
+        </section>
       </main>
 
       <BottomNav />
